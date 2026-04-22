@@ -384,5 +384,33 @@ function closeModal() {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 init();
 </script>
+ <script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+const supabaseUrl = 'https://gvkjvbpaavaofdelvnlz.supabase.co'
+const supabaseKey = 'sb_publishable_kEz5hrc6H4B1QsK5M7Zarg_t6FL-oAV'
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+async function loadPanelists() {
+  const { data, error } = await supabase
+    .from('panelists')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true })
+
+  if (error) {
+    console.error(error)
+    return
+  }
+
+  console.log('Panelists:', data)
+
+  const container = document.createElement('div')
+  container.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`
+  document.body.appendChild(container)
+}
+
+loadPanelists()
+</script>
 </body>
 </html>
