@@ -300,47 +300,17 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js'
 
 const SUPABASE_URL = 'https://gvkjvbpaavaofdelvnlz.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_kEz5hrc6H4B1QsK5M7Zarg_t6FL-oAV'
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storage: window.localStorage,
+    storageKey: 'sdbs-tracker-auth'
   }
 })
 
 let currentSession = null
-
-async function ensureAuthenticatedSession() {
-  const { data: { session }, error } = await supabase.auth.getSession()
-  if (error || !session) {
-    console.error('No active Supabase session:', error)
-    alert('Your login session is missing or expired. Log out, hard refresh, and log in again.')
-    throw new Error('No active Supabase session')
-  }
-  currentSession = session
-  return session
-}
-
-function authedClient(session) {
-  return createClient(SUPABASE_URL, SUPABASE_KEY, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  })
-}
-
-async function dbClient() {
-  const session = await ensureAuthenticatedSession()
-  return authedClient(session)
-}
 
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession()
@@ -386,10 +356,6 @@ window.login = async function() {
   }
 
   currentSession = data.session
-  await supabase.auth.setSession({
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
-  })
   document.body.classList.add('authenticated')
   await init()
 }
@@ -406,6 +372,28 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     return
   }
 })
+
+async function getAuthedClient() {
+  const { data: { session }, error } = await supabase.auth.getSession()
+  if (error || !session?.access_token) {
+    console.error('Missing Supabase auth session:', error)
+    alert('Your login session is missing or expired. Log out, hard refresh, and log in again.')
+    return null
+  }
+
+  return createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    }
+  })
+}
 
 
 const DEFAULT_SESSION_ROWS = [
@@ -807,9 +795,13 @@ window.handlePhoto = async function(e) {
   const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase()
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`
 
-  const db = await dbClient()
+  const authed = await getAuthedClient()
+  if (!authed) {
+    e.target.value = ''
+    return
+  }
 
-  const { error: uploadError } = await db.storage
+  const { error: uploadError } = await authed.storage
     .from('headshots')
     .upload(fileName, file, {
       cacheControl: '3600',
@@ -824,7 +816,7 @@ window.handlePhoto = async function(e) {
     return
   }
 
-  const { data: publicUrlData } = db.storage
+  const { data: publicUrlData } = supabase.storage
     .from('headshots')
     .getPublicUrl(fileName)
 
@@ -885,11 +877,13 @@ function buildMinimalPayload(data, existingId) {
 async function saveWithFallback(data, existingId) {
   const fullPayload = buildFullPayload(data, existingId)
   const minimalPayload = buildMinimalPayload(data, existingId)
-  const db = await dbClient()
+
+  const authed = await getAuthedClient()
+  if (!authed) return { error: { message: 'Not authenticated' } }
 
   const attempt = async (payload) => {
-    if (existingId) return await db.from('panelists').update(payload).eq('id', Number(existingId)).select().single()
-    return await db.from('panelists').insert(payload).select().single()
+    if (existingId) return await authed.from('panelists').update(payload).eq('id', Number(existingId)).select().single()
+    return await authed.from('panelists').insert(payload).select().single()
   }
 
   let result = await attempt(fullPayload)
@@ -937,8 +931,9 @@ window.savePerson = async function() {
 
 window.deletePerson = async function() {
   if (!editingId || !confirm('Remove this person?')) return
-  const db = await dbClient()
-  const { error } = await db.from('panelists').delete().eq('id', Number(editingId))
+  const authed = await getAuthedClient()
+  if (!authed) return
+  const { error } = await authed.from('panelists').delete().eq('id', Number(editingId))
   if (error) {
     console.error('Delete failed:', error)
     alert('Delete failed.')
@@ -1019,12 +1014,14 @@ async function saveSessionRow(row, existingId = null) {
     is_active: row.is_active !== false,
   }
 
-  const db = await dbClient()
+  const authed = await getAuthedClient()
+  if (!authed) return false
+
   let result
   if (existingId) {
-    result = await db.from('sessions').update(payload).eq('id', existingId).select().single()
+    result = await authed.from('sessions').update(payload).eq('id', existingId).select().single()
   } else {
-    result = await db.from('sessions').insert(payload).select().single()
+    result = await authed.from('sessions').insert(payload).select().single()
   }
 
   if (result.error) {
@@ -1052,8 +1049,9 @@ window.editSession = async function(id) {
   const row = promptSessionData(existing)
   if (!row) return
   if (row.id !== existing.id) {
-    const db = await dbClient()
-    const { error: delError } = await db.from('sessions').delete().eq('id', existing.id)
+    const authed = await getAuthedClient()
+    if (!authed) return
+    const { error: delError } = await authed.from('sessions').delete().eq('id', existing.id)
     if (delError) {
       console.error(delError)
       alert('Could not rename the row id. Edit failed.')
@@ -1067,8 +1065,9 @@ window.editSession = async function(id) {
 
 window.deleteSession = async function(id) {
   if (!confirm('Delete this panel row? Assigned speakers will remain but become unassigned.')) return
-  const db = await dbClient()
-  const { error } = await db.from('sessions').delete().eq('id', id)
+  const authed = await getAuthedClient()
+  if (!authed) return
+  const { error } = await authed.from('sessions').delete().eq('id', id)
   if (error) {
     console.error('Session delete failed:', error)
     alert('Delete failed.')
@@ -1082,8 +1081,9 @@ window.deleteSession = async function(id) {
 
 window.seedDefaultSchedule = async function() {
   const rows = DEFAULT_SESSION_ROWS.map(r => ({...r}))
-  const db = await dbClient()
-  const { error } = await db.from('sessions').upsert(rows)
+  const authed = await getAuthedClient()
+  if (!authed) return
+  const { error } = await authed.from('sessions').upsert(rows)
   if (error) {
     console.error('Seed failed:', error)
     alert('Seed failed. Make sure the sessions table exists and has RLS policies.')
