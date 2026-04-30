@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDBS Panelist Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #2C96D5; --brand-dark: #1a78b0; --brand-light: #e8f5fc; --brand-mid: #5aaedd;
+    --bg: #f0f4fa; --surface: #ffffff; --surface-alt: #f7f9fd;
+    --border: #dce6f5; --border-strong: #b8cce8;
+    --text: #0f2040; --text-mid: #3a5a80; --text-muted: #7a98be; --text-faint: #aec4de;
+    --green: #1a7a4a; --amber: #8a5a00; --red: #c02828;
+    --keynote-bg: #fff8ec; --keynote-border: #e8d0a0; --keynote: #7a4a00;
+    --team-bg: #f0f9f4; --team-border: #b8dfc8; --team: #1a5a3a;
+    --sponsor-bg: #fffbec; --sponsor-border: #e8d080; --sponsor: #7a5a00;
+    --shadow: 0 2px 8px rgba(10,40,100,0.07);
+    --shadow-md: 0 6px 20px rgba(10,40,100,0.13);
+  }
+  body { font-family: 'Lexend', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  button { font-family: 'Lexend', sans-serif; cursor: pointer; }
+  input, select, textarea { font-family: 'Lexend', sans-serif; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 28px 0; box-shadow: var(--shadow); }
+  .header-inner { max-width: 1180px; margin: 0 auto; }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .header-eyebrow { font-size: 9px; color: var(--brand-mid); letter-spacing: 3px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+  .header-title { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .stat-pill { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 10px; padding: 7px 14px; text-align: center; }
+  .stat-pill .val { font-size: 18px; font-weight: 700; line-height: 1; }
+  .stat-pill .lbl { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .btn-primary { background: var(--brand); border: none; color: #fff; border-radius: 10px; padding: 10px 18px; font-size: 12px; font-weight: 700; box-shadow: 0 4px 14px rgba(44,150,213,0.3); transition: background 0.15s; }
+  .btn-primary:hover { background: var(--brand-dark); }
+  .tabs { display: flex; border-bottom: 2px solid var(--border); }
+  .tab { background: transparent; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-muted); font-size: 12px; font-weight: 400; padding: 8px 16px; transition: all 0.15s; letter-spacing: 0.2px; white-space: nowrap; }
+  .tab.active { color: var(--brand); font-weight: 700; border-bottom-color: var(--brand); }
+  .search-bar { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text); font-size: 12px; outline: none; width: 260px; transition: border-color 0.15s; }
+  .search-bar:focus { border-color: var(--brand); }
+  .tabs-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .content { max-width: 1180px; margin: 0 auto; padding: 26px 28px 60px; }
+
+  .session-block { margin-bottom: 24px; }
+  .session-header { display: flex; align-items: center; gap: 12px; margin-bottom: 11px; }
+  .session-time { font-size: 9px; color: var(--brand); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+  .session-label { font-size: 17px; font-weight: 700; color: var(--text); }
+  .session-divider { flex: 1; height: 1px; background: var(--border); }
+  .rooms { display: flex; gap: 14px; flex-wrap: wrap; }
+  .room-card { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; flex: 1; min-width: 270px; box-shadow: var(--shadow); }
+  .room-header { padding: 13px 15px 11px; border-bottom: 1px solid var(--border); background: var(--surface-alt); }
+  .room-label { font-size: 9px; color: var(--text-muted); font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 4px; }
+  .room-topic { font-size: 14px; color: var(--text); font-weight: 700; line-height: 1.35; }
+  .room-topic.tbd { color: var(--text-faint); font-style: italic; }
+  .room-body { padding: 6px 5px; }
+  .add-person-btn { width: 100%; background: transparent; border: 1px dashed var(--border-strong); border-radius: 7px; color: var(--text-muted); font-size: 11px; padding: 7px; margin-top: 5px; transition: all 0.15s; }
+  .add-person-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+  .break-row { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
+  .break-time { font-size: 9px; color: var(--text-faint); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .break-label { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+  .keynote-card { background: var(--keynote-bg); border: 1px solid var(--keynote-border); border-radius: 14px; padding: 18px 20px; margin-bottom: 24px; }
+  .keynote-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .keynote-badge { background: #fff3d0; color: var(--keynote); border: 1px solid var(--keynote-border); border-radius: 20px; padding: 2px 9px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .keynote-title { font-size: 18px; font-weight: 700; color: var(--keynote); margin-bottom: 3px; }
+  .keynote-topic { font-size: 12px; color: #a07030; font-style: italic; margin-bottom: 14px; }
+  .keynote-add { width: 100%; background: transparent; border: 1px dashed var(--keynote-border); border-radius: 7px; color: var(--amber); font-size: 11px; padding: 7px; margin-top: 8px; }
+
+  .person-row { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 9px; cursor: pointer; transition: background 0.15s; }
+  .person-row:hover { background: var(--brand-light); }
+  .person-info { flex: 1; min-width: 0; }
+  .person-name { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .person-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dots { display: flex; gap: 3px; flex-shrink: 0; }
+  .dot { width: 5px; height: 5px; border-radius: 3px; }
+  .dot.filled { background: var(--green); }
+  .dot.empty { background: var(--border); }
+
+  .avatar { border-radius: 50%; object-fit: cover; border: 2px solid var(--border); flex-shrink: 0; display: block; }
+  .avatar-initials { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; border: 2px solid var(--border); flex-shrink: 0; background: linear-gradient(135deg, var(--brand-light), #d0e4f8); color: var(--brand); }
+
+  .badge { border-radius: 20px; padding: 2px 8px; font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; border: 1px solid; }
+  .badge-Moderator { background: #e8f0fc; color: #1a4a9a; border-color: #b8cce8; }
+  .badge-Panelist { background: #f0f6ff; color: #2a60b8; border-color: #c8daf0; }
+  .badge-Keynote { background: #fff8ec; color: var(--keynote); border-color: var(--keynote-border); }
+  .badge-Sponsor { background: var(--sponsor-bg); color: var(--sponsor); border-color: var(--sponsor-border); }
+  .badge-organizer { background: var(--team-bg); color: var(--team); border-color: var(--team-border); }
+
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  .table-head { display: grid; grid-template-columns: 2fr 1.5fr 1fr 80px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface-alt); font-size: 9px; color: var(--text-muted); font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  .table-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr 80px; padding: 10px 16px; cursor: pointer; align-items: center; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: var(--brand-light); }
+  .table-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .table-sub { font-size: 10px; color: var(--text-muted); }
+  .table-company { font-size: 13px; color: var(--text-mid); }
+
+  .gallery-stats { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+  .gallery-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 22px; flex: 1; min-width: 120px; box-shadow: var(--shadow); }
+  .gallery-stat .gval { font-size: 28px; font-weight: 700; line-height: 1; }
+  .gallery-stat .glbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .gallery-section-label { font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; margin-bottom: 14px; }
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 32px; }
+  .photo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; cursor: pointer; transition: all 0.18s; box-shadow: var(--shadow); }
+  .photo-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--brand-mid); }
+  .photo-card-img { width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--surface-alt); }
+  .photo-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-card-initials { width: 100%; aspect-ratio: 1; background: var(--surface-alt); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 4px; }
+  .photo-card-info { padding: 10px 11px 12px; }
+  .photo-card-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.25; }
+  .photo-card-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .missing-card { border: 1.5px dashed var(--border-strong) !important; }
+  .missing-card:hover { border-color: var(--brand) !important; background: var(--brand-light); }
+
+  /* Team tab */
+  .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .team-card { background: var(--surface); border: 1px solid var(--team-border); border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 0.18s; box-shadow: var(--shadow); }
+  .team-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--team); }
+  .team-card-img { width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--team-bg); }
+  .team-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .team-card-initials { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--team-bg), #d0f0e0); }
+  .team-card-info { padding: 12px 14px 14px; }
+  .team-card-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .team-card-title { font-size: 11px; color: var(--team); font-weight: 600; }
+  .team-card-company { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(10,30,60,0.35); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 16px; backdrop-filter: blur(6px); }
+  .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 620px; max-height: 92vh; overflow-y: auto; padding: 32px; box-shadow: 0 20px 60px rgba(10,30,80,0.18); }
+  .modal-photo-wrap { position: relative; cursor: pointer; flex-shrink: 0; }
+  .modal-photo-overlay { position: absolute; inset: 0; border-radius: 50%; background: rgba(10,40,100,0.55); display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #fff; }
+  .modal-photo-wrap:hover .modal-photo-overlay { opacity: 1; }
+  .field-label { display: block; font-size: 9px; color: var(--text-muted); letter-spacing: 1.5px; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; }
+  .field-input { width: 100%; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px; font-family: 'Lexend', sans-serif; outline: none; box-sizing: border-box; transition: border-color 0.15s; }
+  .field-input:focus { border-color: var(--brand); }
+  .btn-danger { background: #fdeaea; border: 1px solid #f0c0c0; color: var(--red); border-radius: 8px; padding: 9px 16px; font-size: 12px; }
+  .btn-secondary { background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-mid); border-radius: 8px; padding: 9px 18px; font-size: 12px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-bottom: 13px; }
+  .span-2 { grid-column: span 2; }
+  .modal-actions { display: flex; justify-content: space-between; gap: 10px; }
+  .modal-actions-right { display: flex; gap: 10px; margin-left: auto; }
+  .type-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+  .type-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 12px; font-weight: 600; transition: all 0.15s; font-family: 'Lexend', sans-serif; }
+  .type-btn.active-speaker { border-color: var(--brand); background: var(--brand-light); color: var(--brand); }
+  .type-btn.active-organizer { border-color: var(--team); background: var(--team-bg); color: var(--team); }
+
+  .saving-toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 600; z-index: 400; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .saving-toast.visible { opacity: 1; }
+
+  @media (max-width: 600px) {
+    .rooms { flex-direction: column; }
+    .form-grid { grid-template-columns: 1fr; }
+    .span-2 { grid-column: span 1; }
+    .table-head, .table-row { grid-template-columns: 1fr 1fr; }
+    .table-head span:nth-child(n+3), .table-row > *:nth-child(n+3) { display: none; }
+  }
+
+  .auth-screen { position: fixed; inset: 0; z-index: 9999; background: linear-gradient(160deg, #0d2a42 0%, #0f3558 45%, #1a5a80 100%); display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .auth-card { width: 100%; max-width: 420px; background: #fff; border-radius: 18px; padding: 28px; box-shadow: 0 24px 80px rgba(10,30,60,0.3); }
+  .auth-eyebrow { font-size: 9px; color: var(--brand-mid); letter-spacing: 3px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+  .auth-title { font-size: 26px; color: var(--text); font-weight: 700; margin-bottom: 6px; }
+  .auth-sub { color: var(--text-muted); font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
+  .auth-error { display: none; margin-top: 12px; background: #fdeaea; border: 1px solid #f0c0c0; color: var(--red); border-radius: 10px; padding: 10px 12px; font-size: 12px; }
+  .auth-note { margin-top: 14px; color: var(--text-faint); font-size: 11px; line-height: 1.45; }
+  .app-shell { display: none; }
+  body.authenticated .app-shell { display: block; }
+  body.authenticated .auth-screen { display: none; }
+</style>
+</head>
+<body>
+
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-eyebrow">Admin Access</div>
+    <div class="auth-title">Panelist Tracker Login</div>
+    <div class="auth-sub">Sign in to manage speakers, headshots, and panel details.</div>
+    <div style="margin-bottom:12px;">
+      <label class="field-label">Email</label>
+      <input class="field-input" id="authEmail" type="email" placeholder="you@intouchlive.com" autocomplete="email">
+    </div>
+    <div style="margin-bottom:16px;">
+      <label class="field-label">Password</label>
+      <input class="field-input" id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="authLoginBtn" style="width:100%;" onclick="login()">Sign in</button>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-note">Admin access only. The public directory remains view-only.</div>
+  </div>
+</div>
+
+<div class="app-shell" id="appShell">
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div>
+        <div class="header-eyebrow">San Diego Business Symposium · May 2026</div>
+        <div class="header-title">Panelist Tracker</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div class="stat-pills" id="statPills"></div>
+        <button class="btn-secondary" onclick="logout()">Logout</button>
+        <button class="btn-primary" onclick="openModal(null)">+ Add Person</button>
+      </div>
+    </div>
+    <div class="tabs-row">
+      <div class="tabs">
+        <button class="tab active" data-tab="schedule" onclick="switchTab('schedule',this)">By Session</button>
+        <button class="tab" data-tab="all" onclick="switchTab('all',this)">All People</button>
+        <button class="tab" data-tab="photos" onclick="switchTab('photos',this)" id="photosTabBtn">Headshots</button>
+        <button class="tab" data-tab="team" onclick="switchTab('team',this)">Meet the Team</button>
+        <button class="tab" data-tab="panels" onclick="switchTab('panels',this)">Panels</button>
+      </div>
+      <input class="search-bar" id="searchBar" placeholder="Search name, company…" oninput="renderCurrent()" style="display:none">
+    </div>
+  </div>
+</div>
+
+<div class="content" id="content"></div>
+<div class="saving-toast" id="savingToast">Saved ✓</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;">
+      <div class="modal-photo-wrap" onclick="document.getElementById('photoInput').click()">
+        <div id="modalAvatar" style="width:72px;height:72px;"></div>
+        <div class="modal-photo-overlay">PHOTO</div>
+      </div>
+      <div>
+        <div id="modalTitle" style="font-size:22px;font-weight:700;color:var(--text);"></div>
+        <div id="photoHint" style="font-size:11px;color:var(--brand);margin-top:3px;cursor:pointer;" onclick="document.getElementById('photoInput').click()">Upload headshot</div>
+        <div id="removePhotoBtn" style="font-size:10px;color:var(--text-muted);margin-top:2px;cursor:pointer;display:none;" onclick="removePhoto()">Remove photo ✕</div>
+      </div>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhoto(event)">
+
+    <!-- Type toggle -->
+    <div class="type-toggle">
+      <button class="type-btn active-speaker" id="typeSpeaker" onclick="setPersonType('speaker')">🎤 Speaker / Panelist</button>
+      <button class="type-btn" id="typeOrganizer" onclick="setPersonType('organizer')">🤝 Event Team</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="span-2">
+        <label class="field-label">Full Name</label>
+        <input class="field-input" id="fName" placeholder="Full name">
+      </div>
+      <div>
+        <label class="field-label">Title</label>
+        <input class="field-input" id="fTitle" placeholder="Job title">
+      </div>
+      <div>
+        <label class="field-label">Company</label>
+        <input class="field-input" id="fCompany" placeholder="Organization">
+      </div>
+      <div>
+        <label class="field-label">Email</label>
+        <input class="field-input" id="fEmail" type="email" placeholder="email@company.com">
+      </div>
+      <div>
+        <label class="field-label">LinkedIn URL</label>
+        <input class="field-input" id="fLinkedin" placeholder="https://linkedin.com/in/…">
+      </div>
+      <div id="roleField">
+        <label class="field-label">Role</label>
+        <select class="field-input" id="fRole">
+          <option>Moderator</option>
+          <option>Panelist</option>
+          <option>Keynote Speaker</option>
+          <option>Featured Sponsor</option>
+        </select>
+      </div>
+      <div id="sessionField">
+        <label class="field-label">Session</label>
+        <select class="field-input" id="fSession">
+          <option value="">— Unassigned —</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:24px;">
+      <label class="field-label">Bio</label>
+      <textarea class="field-input" id="fBio" rows="5" style="resize:vertical;" placeholder="Bio…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="deleteBtn" style="display:none" onclick="deletePerson()">Remove</button>
+      <div class="modal-actions-right">
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn-primary" id="saveBtn" onclick="savePerson()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app-shell -->
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+const SUPABASE_URL = 'https://gvkjvbpaavaofdelvnlz.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_kEz5hrc6H4B1QsK5M7Zarg_t6FL-oAV'
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'sdbs-tracker-auth' }
+})
+
+let currentSession = null
+
+async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession()
+  currentSession = session
+  if (session) { document.body.classList.add('authenticated'); return true }
+  document.body.classList.remove('authenticated'); return false
+}
+
+window.login = async function() {
+  const email = document.getElementById('authEmail').value.trim()
+  const password = document.getElementById('authPassword').value
+  const btn = document.getElementById('authLoginBtn')
+  const err = document.getElementById('authError')
+  err.style.display = 'none'
+  if (!email || !password) { err.textContent = 'Enter both email and password.'; err.style.display = 'block'; return }
+  btn.disabled = true; btn.textContent = 'Signing in...'
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  btn.disabled = false; btn.textContent = 'Sign in'
+  if (error) { err.textContent = error.message || 'Login failed.'; err.style.display = 'block'; return }
+  currentSession = data.session
+  document.body.classList.add('authenticated')
+  await init()
+}
+
+window.logout = async function() { await supabase.auth.signOut(); location.reload() }
+
+supabase.auth.onAuthStateChange(async (event, session) => {
+  currentSession = session
+  if (event === 'SIGNED_OUT') document.body.classList.remove('authenticated')
+})
+
+const DEFAULT_SESSION_ROWS = [
+  { id:'s1a', group_key:'s1', time:'8:55 – 9:30 AM', label:'Breakout Session 1', room:'Room A', topic:'Fractional Resources To Grow and Protect Your Small Business', sort_order:1, is_break:false, is_keynote:false, is_active:true },
+  { id:'s1b', group_key:'s1', time:'8:55 – 9:30 AM', label:'Breakout Session 1', room:'Room B', topic:'Who Owns Risk? Insurance, Cyber, and the Next 10 Years', sort_order:2, is_break:false, is_keynote:false, is_active:true },
+  { id:'s2a', group_key:'s2', time:'9:40 – 10:15 AM', label:'Breakout Session 2', room:'Room A', topic:'Cyber Threats, Protection Strategies, and Risk Perspective', sort_order:3, is_break:false, is_keynote:false, is_active:true },
+  { id:'s2b', group_key:'s2', time:'9:40 – 10:15 AM', label:'Breakout Session 2', room:'Room B', topic:'Topic TBD', sort_order:4, is_break:false, is_keynote:false, is_active:true },
+  { id:'net', group_key:'net', time:'10:15 – 11:15 AM', label:'Networking Session', room:'', topic:'', sort_order:5, is_break:true, is_keynote:false, is_active:true },
+  { id:'s3a', group_key:'s3', time:'11:15 – 11:50 AM', label:'Breakout Session 3', room:'Room A', topic:'Keeping the Humans in Human Capital', sort_order:6, is_break:false, is_keynote:false, is_active:true },
+  { id:'s3b', group_key:'s3', time:'11:15 – 11:50 AM', label:'Breakout Session 3', room:'Room B', topic:'Cyber Resilience in Action — A Tabletop Exercise', sort_order:7, is_break:false, is_keynote:false, is_active:true },
+  { id:'s4a', group_key:'s4', time:'12:00 – 12:35 PM', label:'Breakout Session 4', room:'Room A', topic:'You Have AI Questions, We Have Answers', sort_order:8, is_break:false, is_keynote:false, is_active:true },
+  { id:'s4b', group_key:'s4', time:'12:00 – 12:35 PM', label:'Breakout Session 4', room:'Room B', topic:'Topic TBD', sort_order:9, is_break:false, is_keynote:false, is_active:true },
+  { id:'keynote', group_key:'keynote', time:'12:35 – 2:00 PM', label:'Networking Lunch & Keynote', room:'', topic:"Engineering, Identification and Prevention for All. Don't be the Next Victim", sort_order:10, is_break:false, is_keynote:true, is_active:true },
+]
+
+let panelists = []
+let photos = {}
+let scheduleRows = []
+let currentTab = 'schedule'
+let editingId = null
+let pendingPhoto = null
+let removingPhoto = false
+let currentPersonType = 'speaker'
+let missingOptionalColumns = false
+let sessionsTableReady = false
+let sessionsUsingFallback = false
+
+function normalizeSessionId(value) {
+  if (!value) return ''
+  const v = String(value).trim()
+  const direct = scheduleRows.map(r => r.id)
+  if (direct.includes(v)) return v
+  const map = {
+    'Session 1':'s1a','Session 2':'s2a','Session 3':'s3a','Session 4':'s4a',
+    'Breakout Session 1':'s1a','Breakout Session 2':'s2a','Breakout Session 3':'s3a','Breakout Session 4':'s4a',
+    'Keynote':'keynote','Networking Lunch & Keynote':'keynote'
+  }
+  return map[v] || v
+}
+
+function normalizeRow(row) {
+  const sessionId = normalizeSessionId(row.session_id ?? row.sessionId ?? row.panel_name ?? row.Panel_Name)
+  const role = row.role ?? row.Role ?? (sessionId === 'keynote' ? 'Keynote Speaker' : 'Panelist')
+  return {
+    id: String(row.id),
+    name: row.name ?? row.Name ?? '',
+    title: row.title ?? row.Title ?? '',
+    company: row.company ?? row.Company ?? '',
+    email: row.email ?? '',
+    linkedin: row.linkedin ?? row.LinkedIn ?? '',
+    bio: row.bio ?? row.Bio ?? '',
+    role,
+    sessionId,
+    type: row.type ?? 'speaker',
+    headshot: row.headshot_url ?? row.headshot ?? null,
+    display_order: row.display_order ?? null,
+  }
+}
+
+function normalizeSessionRow(row) {
+  return {
+    id: String(row.id),
+    group_key: row.group_key ?? String(row.id),
+    time: row.time ?? '',
+    label: row.label ?? '',
+    room: row.room ?? '',
+    topic: row.topic ?? '',
+    sort_order: Number(row.sort_order ?? 0),
+    is_break: Boolean(row.is_break ?? false),
+    is_keynote: Boolean(row.is_keynote ?? false),
+    is_active: row.is_active ?? true,
+  }
+}
+
+async function loadSessions() {
+  const { data, error } = await supabase.from('sessions').select('*').order('sort_order', { ascending: true })
+  if (error) { sessionsTableReady = false; sessionsUsingFallback = true; scheduleRows = DEFAULT_SESSION_ROWS.map(normalizeSessionRow); return }
+  sessionsTableReady = true
+  if (!data || data.length === 0) { sessionsUsingFallback = true; scheduleRows = DEFAULT_SESSION_ROWS.map(normalizeSessionRow) }
+  else { sessionsUsingFallback = false; scheduleRows = data.filter(r => r.is_active !== false).map(normalizeSessionRow).sort((a,b)=>a.sort_order-b.sort_order) }
+}
+
+function groupedSchedule() {
+  const rows = scheduleRows.filter(r => r.is_active !== false).sort((a,b)=>a.sort_order-b.sort_order)
+  const groups = []; const seen = new Set()
+  for (const row of rows) {
+    const key = row.group_key || row.id
+    if (seen.has(key)) continue; seen.add(key)
+    const members = rows.filter(r => (r.group_key || r.id) === key)
+    const first = members[0]
+    if (first.is_break) groups.push({ type:'break', id:key, time:first.time, label:first.label, sort_order:first.sort_order })
+    else if (first.is_keynote) groups.push({ type:'keynote', id:key, time:first.time, label:first.label, topic:first.topic, sessionId:first.id, sort_order:first.sort_order })
+    else groups.push({ type:'session', id:key, time:first.time, label:first.label, rooms:members, sort_order:first.sort_order })
+  }
+  return groups.sort((a,b)=>a.sort_order-b.sort_order)
+}
+
+function populateSessionOptions() {
+  const select = document.getElementById('fSession')
+  const rows = scheduleRows.filter(r => r.is_active !== false && !r.is_break)
+  select.innerHTML = '<option value="">— Unassigned —</option>' + rows.map(r => `<option value="${r.id}">${r.label}${r.room ? ' · ' + r.room : ''}</option>`).join('')
+}
+
+async function init() {
+  await loadSessions()
+  populateSessionOptions()
+  await loadPanelists()
+  updateStats()
+  renderCurrent()
+}
+
+async function loadPanelists() {
+  const { data, error } = await supabase.from('panelists').select('*').order('display_order', { ascending: true })
+  if (error) { console.error('Supabase load error:', error); panelists = []; photos = {}; return }
+  panelists = (data || []).map(normalizeRow)
+  photos = Object.fromEntries(panelists.filter(p=>p.headshot).map(p=>[p.id, p.headshot]))
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function speakers() { return panelists.filter(p => p.type !== 'organizer') }
+function organizers() { return panelists.filter(p => p.type === 'organizer') }
+
+function getSessionLabel(sid) {
+  const row = scheduleRows.find(r => r.id === sid)
+  if (!row) return 'Unassigned'
+  return row.room ? `${row.label} · ${row.room}` : row.label
+}
+
+function initials(name) { return (name||'?').split(' ').filter(Boolean).map(n=>n[0]).join('').slice(0,2).toUpperCase() }
+
+function avatarHTML(id, name, size=36) {
+  return photos[id]
+    ? `<img class="avatar" src="${photos[id]}" style="width:${size}px;height:${size}px;">`
+    : `<div class="avatar-initials" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.35)}px;">${initials(name)}</div>`
+}
+
+function badgeHTML(role) {
+  if (role === 'Keynote Speaker') return `<span class="badge badge-Keynote">${role}</span>`
+  if (role === 'Featured Sponsor') return `<span class="badge badge-Sponsor">${role}</span>`
+  return `<span class="badge badge-${role}">${role}</span>`
+}
+
+function dotsHTML(p) {
+  return `<div class="dots">${[p.bio,p.linkedin,photos[p.id],p.email].map(v=>`<div class="dot ${v?'filled':'empty'}"></div>`).join('')}</div>`
+}
+
+function personRowHTML(p) {
+  return `
+    <div class="person-row" onclick="openModal('${p.id}')">
+      ${avatarHTML(p.id,p.name,36)}
+      <div class="person-info">
+        <div class="person-name">${p.name} ${badgeHTML(p.role)}</div>
+        <div class="person-sub">${[p.title,p.company].filter(Boolean).join(' · ')}</div>
+      </div>
+      ${dotsHTML(p)}
+    </div>`
+}
+
+function roomCardHTML(room, people) {
+  const isTBD = (room.topic || '').includes('TBD')
+  return `
+    <div class="room-card">
+      <div class="room-header">
+        <div class="room-label">${room.room || 'Panel'}</div>
+        <div class="room-topic${isTBD?' tbd':''}">${room.topic || 'Untitled panel'}</div>
+      </div>
+      <div class="room-body">
+        ${people.map(personRowHTML).join('')}
+        <button class="add-person-btn" onclick="openModal(null, '${room.id}')">+ Add person</button>
+      </div>
+    </div>`
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderCurrent() {
+  if (currentTab==='schedule') renderSchedule()
+  else if (currentTab==='all') renderAll()
+  else if (currentTab==='photos') renderPhotos()
+  else if (currentTab==='team') renderTeam()
+  else renderPanelsManager()
+}
+
+function renderSchedule() {
+  const spkrs = speakers()
+  let html = ''
+  for (const s of groupedSchedule()) {
+    if (s.type === 'break') {
+      html += `<div class="break-row" style="margin-bottom:16px;"><span class="break-time">${s.time}</span><span class="break-label">${s.label}</span></div>`
+      continue
+    }
+    if (s.type === 'keynote') {
+      const kp = spkrs.filter(p=>p.sessionId===s.sessionId)
+      html += `
+        <div class="keynote-card">
+          <div class="keynote-meta">
+            <span class="break-time" style="color:var(--keynote);">${s.time}</span>
+            <span class="keynote-badge">Keynote</span>
+          </div>
+          <div class="keynote-title">${s.label}</div>
+          <div class="keynote-topic">${s.topic || ''}</div>
+          ${kp.map(personRowHTML).join('')}
+          <button class="keynote-add" onclick="openModal(null,'${s.sessionId}')">+ Add person</button>
+        </div>`
+      continue
+    }
+    html += `
+      <div class="session-block">
+        <div class="session-header">
+          <span class="session-time">${s.time}</span>
+          <span class="session-label">${s.label}</span>
+          <div class="session-divider"></div>
+        </div>
+        <div class="rooms">
+          ${s.rooms.map(r => roomCardHTML(r, spkrs.filter(p=>p.sessionId===r.id))).join('')}
+        </div>
+      </div>`
+  }
+  document.getElementById('content').innerHTML = html
+}
+
+function renderAll() {
+  const q = document.getElementById('searchBar').value.toLowerCase()
+  const list = speakers()
+  // Deduplicate by name for display — show sessions as tags
+  const seen = new Map()
+  for (const p of list) {
+    const key = p.name.trim().toLowerCase()
+    if (!seen.has(key)) seen.set(key, { ...p, sessions: [p.sessionId] })
+    else seen.get(key).sessions.push(p.sessionId)
+  }
+  const deduped = [...seen.values()].filter(p => !q || [p.name,p.company,p.title].join(' ').toLowerCase().includes(q))
+  const rows = deduped.map(p=>`
+    <div class="table-row" onclick="openModal('${p.id}')">
+      <div style="display:flex;align-items:center;gap:11px;">
+        ${avatarHTML(p.id,p.name,34)}
+        <div>
+          <div class="table-name">${p.name}</div>
+          <div class="table-sub">${p.sessions.map(s=>getSessionLabel(s)).filter(Boolean).join(' · ')}</div>
+        </div>
+      </div>
+      <div><div class="table-company">${p.company||'<span style="color:var(--text-faint)">—</span>'}</div><div class="table-sub">${p.title}</div></div>
+      ${badgeHTML(p.role)}
+      ${dotsHTML(p)}
+    </div>`).join('')
+  document.getElementById('content').innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">People on multiple panels are shown once. Click to edit any session entry.</div>
+    <div class="table-wrap">
+      <div class="table-head"><span>Name</span><span>Company</span><span>Role</span><span>Profile</span></div>
+      ${rows || '<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:13px;">No results</div>'}
+    </div>`
+}
+
+function renderPhotos() {
+  const all = panelists
+  const withPhoto = all.filter(p=>photos[p.id])
+  const without = all.filter(p=>!photos[p.id])
+  const pct = all.length ? Math.round((withPhoto.length/all.length)*100) : 0
+  const cardHTML = (p, missing) => `
+    <div class="photo-card${missing?' missing-card':''}" onclick="openModal('${p.id}')">
+      ${photos[p.id]
+        ? `<div class="photo-card-img"><img src="${photos[p.id]}" alt="${p.name}"></div>`
+        : `<div class="photo-card-initials"><span style="font-size:32px;font-weight:700;color:var(--text-faint);">${initials(p.name)}</span><span style="font-size:9px;color:var(--text-faint);letter-spacing:1px;">NO PHOTO</span></div>`
+      }
+      <div class="photo-card-info">
+        <div class="photo-card-name">${p.name}</div>
+        <div class="photo-card-sub">${p.type==='organizer'?'Team':p.company||p.title||''}</div>
+        <div style="margin-top:6px;">${p.type==='organizer'?'<span class="badge badge-organizer">Team</span>':badgeHTML(p.role)}</div>
+      </div>
+    </div>`
+  document.getElementById('content').innerHTML = `
+    <div class="gallery-stats">
+      <div class="gallery-stat"><div class="gval" style="color:var(--brand);">${withPhoto.length}</div><div class="glbl">Photos uploaded</div></div>
+      <div class="gallery-stat"><div class="gval" style="color:var(--amber);">${without.length}</div><div class="glbl">Still needed</div></div>
+      <div class="gallery-stat"><div class="gval" style="color:var(--green);">${pct}%</div><div class="glbl">Complete</div></div>
+    </div>
+    ${withPhoto.length>0 ? `<div class="gallery-section-label">Uploaded Photos</div><div class="photo-grid">${withPhoto.map(p=>cardHTML(p,false)).join('')}</div>` : ''}
+    ${without.length>0 ? `<div class="gallery-section-label">Missing Photos — click to upload</div><div class="photo-grid">${without.map(p=>cardHTML(p,true)).join('')}</div>` : ''}`
+}
+
+function renderTeam() {
+  const team = organizers()
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:17px;font-weight:700;color:var(--text);">Meet the Team</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${team.length} team member${team.length!==1?'s':''} · Shown on the public directory</div>
+      </div>
+      <button class="btn-primary" onclick="openModal(null,null,'organizer')">+ Add Team Member</button>
+    </div>
+    ${team.length>0
+      ? `<div class="team-grid">${team.map(p=>`
+          <div class="team-card" onclick="openModal('${p.id}')">
+            <div class="team-card-img">
+              ${photos[p.id]
+                ? `<img src="${photos[p.id]}" alt="${p.name}">`
+                : `<div class="team-card-initials"><span style="font-size:40px;font-weight:700;color:var(--team);opacity:0.6;">${initials(p.name)}</span></div>`
+              }
+            </div>
+            <div class="team-card-info">
+              <div class="team-card-name">${p.name}</div>
+              <div class="team-card-title">${p.title||''}</div>
+              <div class="team-card-company">${p.company||''}</div>
+            </div>
+          </div>`).join('')}</div>`
+      : `<div style="text-align:center;padding:60px 0;color:var(--text-faint);font-size:14px;">No team members yet. Click "Add Team Member" to get started.</div>`
+    }`
+}
+
+function renderPanelsManager() {
+  const rows = scheduleRows.sort((a,b)=>a.sort_order-b.sort_order)
+  const note = sessionsUsingFallback ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+    <div style="font-size:13px;color:var(--text-mid);margin-bottom:10px;">Using fallback schedule. Seed to make edits persistent.</div>
+    <button class="btn-primary" onclick="seedDefaultSchedule()">Seed current schedule</button>
+  </div>` : ''
+  const body = rows.map(r => `
+    <div class="table-row" style="grid-template-columns: 1.1fr 1.4fr 1fr 120px; cursor:default;">
+      <div><div class="table-name">${r.label||'Untitled'}</div><div class="table-sub">${r.id} · ${r.group_key}</div></div>
+      <div><div class="table-company">${r.room||(r.is_break?'Break':(r.is_keynote?'Keynote':'—'))}</div><div class="table-sub">${r.topic||'—'}</div></div>
+      <div><div class="table-company">${r.time||'—'}</div><div class="table-sub">Sort ${r.sort_order}</div></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-secondary" onclick="editSession('${r.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteSession('${r.id}')">Delete</button>
+      </div>
+    </div>`).join('')
+  document.getElementById('content').innerHTML = `
+    ${note}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:13px;color:var(--text-muted);">Manage panel names, rooms, times, breaks, and keynote blocks.</div>
+      <button class="btn-primary" onclick="addSession()">+ Add panel / row</button>
+    </div>
+    <div class="table-wrap">
+      <div class="table-head" style="grid-template-columns:1.1fr 1.4fr 1fr 120px;"><span>Label</span><span>Room / Topic</span><span>Time</span><span>Actions</span></div>
+      ${body||'<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:13px;">No session rows yet.</div>'}
+    </div>`
+}
+
+function updateStats() {
+  const spkrs = speakers()
+  const team = organizers()
+  const total = spkrs.length
+  const full = spkrs.filter(p=>p.bio&&p.linkedin&&photos[p.id]).length
+  const withPh = panelists.filter(p=>photos[p.id]).length
+  document.getElementById('statPills').innerHTML = [
+    {label:'Speakers',val:total,col:'var(--brand)'},
+    {label:'Team',val:team.length,col:'var(--team)'},
+    {label:'Complete',val:full,col:'var(--green)'},
+    {label:'Photos',val:`${withPh}/${panelists.length}`,col:'var(--amber)'},
+  ].map(s=>`<div class="stat-pill"><div class="val" style="color:${s.col}">${s.val}</div><div class="lbl">${s.label}</div></div>`).join('')
+  document.getElementById('photosTabBtn').textContent = `Headshots (${withPh}/${panelists.length})`
+}
+
+window.switchTab = function(tab, btn) {
+  currentTab = tab
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
+  btn.classList.add('active')
+  document.getElementById('searchBar').style.display = (tab==='all') ? 'block' : 'none'
+  renderCurrent()
+}
+
+// ── Person type toggle ────────────────────────────────────────────────────────
+window.setPersonType = function(type) {
+  currentPersonType = type
+  document.getElementById('typeSpeaker').className = 'type-btn' + (type==='speaker' ? ' active-speaker' : '')
+  document.getElementById('typeOrganizer').className = 'type-btn' + (type==='organizer' ? ' active-organizer' : '')
+  document.getElementById('roleField').style.display = type==='organizer' ? 'none' : 'block'
+  document.getElementById('sessionField').style.display = type==='organizer' ? 'none' : 'block'
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+window.openModal = function(id, presetSession, presetType) {
+  editingId = id
+  pendingPhoto = null
+  removingPhoto = false
+  const p = id ? panelists.find(x=>String(x.id)===String(id)) : null
+  const pType = p ? p.type : (presetType || 'speaker')
+
+  populateSessionOptions()
+  document.getElementById('modalTitle').textContent = p ? 'Edit Profile' : 'Add Person'
+  document.getElementById('saveBtn').textContent = p ? 'Save' : 'Add'
+  document.getElementById('deleteBtn').style.display = p ? 'inline-block' : 'none'
+  document.getElementById('fName').value = p?.name || ''
+  document.getElementById('fTitle').value = p?.title || ''
+  document.getElementById('fCompany').value = p?.company || ''
+  document.getElementById('fEmail').value = p?.email || ''
+  document.getElementById('fLinkedin').value = p?.linkedin || ''
+  document.getElementById('fBio').value = p?.bio || ''
+  document.getElementById('fRole').value = p?.role || 'Panelist'
+  document.getElementById('fSession').value = p?.sessionId || presetSession || ''
+
+  setPersonType(pType)
+
+  const currentPhoto = p ? photos[p.id] : null
+  updateModalAvatar(currentPhoto, p?.name || '')
+  document.getElementById('photoHint').textContent = currentPhoto ? 'Change headshot' : 'Upload headshot'
+  document.getElementById('removePhotoBtn').style.display = currentPhoto ? 'block' : 'none'
+  document.getElementById('modalOverlay').style.display = 'flex'
+}
+
+function updateModalAvatar(src, name) {
+  const wrap = document.getElementById('modalAvatar')
+  if (src) wrap.innerHTML = `<img class="avatar" src="${src}" style="width:72px;height:72px;">`
+  else wrap.innerHTML = `<div class="avatar-initials" style="width:72px;height:72px;font-size:22px;">${initials(name || document.getElementById('fName').value)}</div>`
+}
+
+window.closeModal = function() {
+  document.getElementById('modalOverlay').style.display = 'none'
+  editingId = null; pendingPhoto = null; removingPhoto = false
+}
+
+window.handlePhoto = async function(e) {
+  const file = e.target.files[0]; if (!file) return
+  const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${fileExt}`
+  const { error: uploadError } = await supabase.storage.from('headshots').upload(fileName, file, { cacheControl:'3600', upsert:false, contentType:file.type||undefined })
+  if (uploadError) { console.error('Upload failed:', uploadError); alert('Image upload failed.'); e.target.value = ''; return }
+  const { data: publicUrlData } = supabase.storage.from('headshots').getPublicUrl(fileName)
+  pendingPhoto = publicUrlData.publicUrl
+  removingPhoto = false
+  updateModalAvatar(publicUrlData.publicUrl, '')
+  document.getElementById('photoHint').textContent = 'Change headshot'
+  document.getElementById('removePhotoBtn').style.display = 'block'
+  e.target.value = ''
+}
+
+window.removePhoto = function() {
+  pendingPhoto = null; removingPhoto = true
+  updateModalAvatar(null, document.getElementById('fName').value)
+  document.getElementById('photoHint').textContent = 'Upload headshot'
+  document.getElementById('removePhotoBtn').style.display = 'none'
+}
+
+function nextDisplayOrder() {
+  const nums = panelists.map(p=>Number(p.display_order??0)).filter(n=>Number.isFinite(n))
+  return (nums.length ? Math.max(...nums) : 0) + 1
+}
+
+window.savePerson = async function() {
+  const name = document.getElementById('fName').value.trim()
+  if (!name) { document.getElementById('fName').focus(); return }
+  const current = editingId ? panelists.find(p=>String(p.id)===String(editingId)) : null
+  const isOrganizer = currentPersonType === 'organizer'
+  const payload = {
+    name,
+    title: document.getElementById('fTitle').value.trim(),
+    company: document.getElementById('fCompany').value.trim(),
+    email: document.getElementById('fEmail').value.trim(),
+    linkedin: document.getElementById('fLinkedin').value.trim(),
+    bio: document.getElementById('fBio').value.trim(),
+    role: isOrganizer ? 'Organizer' : document.getElementById('fRole').value,
+    panel_name: isOrganizer ? null : document.getElementById('fSession').value,
+    type: currentPersonType,
+    headshot_url: removingPhoto ? null : (pendingPhoto || current?.headshot || null),
+    display_order: current?.display_order || nextDisplayOrder(),
+    is_active: true,
+  }
+  if (editingId) payload.id = Number(editingId)
+
+  const attempt = async (p) => editingId
+    ? supabase.from('panelists').update(p).eq('id',Number(editingId)).select().single()
+    : supabase.from('panelists').insert(p).select().single()
+
+  let { error } = await attempt(payload)
+  if (error) {
+    // fallback without optional columns
+    const minimal = { name:payload.name, title:payload.title, company:payload.company, bio:payload.bio, headshot_url:payload.headshot_url, panel_name:payload.panel_name, display_order:payload.display_order, is_active:true, type:payload.type }
+    if (editingId) minimal.id = Number(editingId)
+    const r2 = await attempt(minimal)
+    if (r2.error) { console.error('Save failed:', r2.error); alert('Save failed. Check your Supabase columns and policies.'); return }
+  }
+
+  await loadPanelists()
+  closeModal()
+  renderCurrent()
+  updateStats()
+  showToast('Saved ✓')
+}
+
+window.deletePerson = async function() {
+  if (!editingId || !confirm('Remove this person?')) return
+  const { error } = await supabase.from('panelists').delete().eq('id',Number(editingId))
+  if (error) { alert('Delete failed.'); return }
+  await loadPanelists(); closeModal(); renderCurrent(); updateStats(); showToast('Removed')
+}
+
+function showToast(msg) {
+  const el = document.getElementById('savingToast')
+  el.textContent = msg; el.classList.add('visible')
+  clearTimeout(showToast._t); showToast._t = setTimeout(()=>el.classList.remove('visible'), 2200)
+}
+
+function promptSessionData(existing=null) {
+  const typeDefault = existing ? (existing.is_keynote?'keynote':(existing.is_break?'break':'panel')) : 'panel'
+  const type = prompt('Row type: panel, break, or keynote', typeDefault); if (type===null) return null
+  const label = prompt('Label', existing?.label||''); if (label===null) return null
+  const time = prompt('Time', existing?.time||''); if (time===null) return null
+  const room = type==='panel' ? prompt('Room', existing?.room||'Room A') : ''; if (room===null) return null
+  const topic = prompt('Topic', existing?.topic||''); if (topic===null) return null
+  const group_key = prompt('Group key', existing?.group_key||''); if (group_key===null) return null
+  const idDefault = existing?.id || `${(group_key||label||'row').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}`.slice(0,40)
+  const id = prompt('Unique row id', idDefault); if (id===null) return null
+  const sortDefault = String(existing?.sort_order ?? (scheduleRows.length?Math.max(...scheduleRows.map(r=>Number(r.sort_order)||0))+1:1))
+  const sort_order = prompt('Sort order', sortDefault); if (sort_order===null) return null
+  return { id:id.trim(), group_key:(group_key||id).trim(), label:label.trim(), time:time.trim(), room:(room||'').trim(), topic:(topic||'').trim(), sort_order:Number(sort_order)||1, is_break:type.trim().toLowerCase()==='break', is_keynote:type.trim().toLowerCase()==='keynote', is_active:true }
+}
+
+async function saveSessionRow(row, existingId=null) {
+  if (!row.id) { alert('Session row id is required.'); return false }
+  const payload = { id:row.id, group_key:row.group_key||row.id, label:row.label, time:row.time, room:row.room||null, topic:row.topic||null, sort_order:row.sort_order, is_break:row.is_break, is_keynote:row.is_keynote, is_active:row.is_active!==false }
+  const result = existingId
+    ? await supabase.from('sessions').update(payload).eq('id',existingId).select().single()
+    : await supabase.from('sessions').insert(payload).select().single()
+  if (result.error) { console.error('Session save failed:', result.error); alert('Session save failed.'); return false }
+  await loadSessions(); populateSessionOptions(); renderCurrent(); showToast('Panel row saved'); return true
+}
+
+window.addSession = async function() { const row = promptSessionData(); if (!row) return; await saveSessionRow(row,null) }
+
+window.editSession = async function(id) {
+  const existing = scheduleRows.find(r=>r.id===id); if (!existing) return
+  const row = promptSessionData(existing); if (!row) return
+  if (row.id !== existing.id) {
+    const { error } = await supabase.from('sessions').delete().eq('id',existing.id)
+    if (error) { alert('Could not rename row id.'); return }
+    await saveSessionRow(row,null); return
+  }
+  await saveSessionRow(row,existing.id)
+}
+
+window.deleteSession = async function(id) {
+  if (!confirm('Delete this panel row?')) return
+  const { error } = await supabase.from('sessions').delete().eq('id',id)
+  if (error) { alert('Delete failed.'); return }
+  await loadSessions(); populateSessionOptions(); renderCurrent(); showToast('Panel row deleted')
+}
+
+window.seedDefaultSchedule = async function() {
+  const { error } = await supabase.from('sessions').upsert(DEFAULT_SESSION_ROWS.map(r=>({...r})))
+  if (error) { alert('Seed failed.'); return }
+  await loadSessions(); populateSessionOptions(); renderCurrent(); showToast('Default schedule seeded')
+}
+
+document.getElementById('fName').addEventListener('input', ()=> {
+  if (!pendingPhoto && !removingPhoto) updateModalAvatar(photos[editingId]||null, document.getElementById('fName').value)
+})
+document.getElementById('authEmail').addEventListener('keydown', e => { if (e.key==='Enter') window.login() })
+document.getElementById('authPassword').addEventListener('keydown', e => { if (e.key==='Enter') window.login() })
+
+async function boot() {
+  const isAuthed = await checkAuth()
+  if (!isAuthed) return
+  await init()
+}
+
+boot()
+</script>
+</body>
+</html>
